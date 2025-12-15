@@ -1,43 +1,13 @@
 using Hotel.Data;
 using Hotel.Models;
-
-using Hotel.Data;
-using Hotel.Models;
-using Microsoft.EntityFrameworkCore;
+using Hotel.Repository;
 
 AppDbContext db = new AppDbContext();
+ReservationRepository reservationRepo = new ReservationRepository(db);
+ClientRepository clientRepository = new ClientRepository(db);
+RoomRepository roomRepository = new RoomRepository(db);
 
 bool continuer = true;
-
-
-    var clients = new List<Client>
-    {
-        new Client { FirstName = "Alice", LastName = "Martin", PhoneNumber = "0612345678" },
-        new Client { FirstName = "Bob", LastName = "Durand", PhoneNumber = "0623456789" },
-        new Client { FirstName = "Claire", LastName = "Petit", PhoneNumber = "0634567890" },
-        new Client { FirstName = "David", LastName = "Lemoine", PhoneNumber = "0645678901" },
-        new Client { FirstName = "Eva", LastName = "Moreau", PhoneNumber = "0656789012" }
-    };
-
-    db.Clients.AddRange(clients);
-    db.SaveChanges();
-    Console.WriteLine("Added five clients.");
-
-
-
-    var rooms = new List<Room>
-    {
-        new Room { Number = 101, BedCount = 1, PricePerNight = 50, Status = Room.StatusType.Available },
-        new Room { Number = 102, BedCount = 2, PricePerNight = 80, Status = Room.StatusType.Occupied },
-        new Room { Number = 103, BedCount = 1, PricePerNight = 60, Status = Room.StatusType.Available },
-        new Room { Number = 104, BedCount = 3, PricePerNight = 120, Status = Room.StatusType.Available },
-        new Room { Number = 105, BedCount = 2, PricePerNight = 90, Status = Room.StatusType.Maintenance }
-    };
-
-    db.Rooms.AddRange(rooms);
-    db.SaveChanges();
-    Console.WriteLine("Added five rooms.");
-
 
 while (continuer)
 {
@@ -47,10 +17,10 @@ while (continuer)
     switch (choix)
     {
         case "1":
-            ManageClients();
+            ManageClients(); 
             break;
         case "2":
-            ManageRooms();
+            ManageRooms();  
             break;
         case "3":
             ManageReservations();
@@ -75,6 +45,8 @@ void DisplayMainMenu()
     Console.Write("\nYour choice: ");
 }
 
+// -------------------- RESERVATIONS --------------------
+
 void ManageReservations()
 {
     Console.WriteLine("\n--- MANAGE RESERVATIONS ---");
@@ -98,8 +70,6 @@ void ManageReservations()
     }
 }
 
-// -------------------- CRUD Reservations --------------------
-
 void AddReservation()
 {
     Console.Write("Client ID: ");
@@ -118,8 +88,8 @@ void AddReservation()
     Console.Write("Check-out date (yyyy-MM-dd): ");
     DateTime checkOut = DateTime.Parse(Console.ReadLine());
 
-    var client = db.Clients.Find(clientId);
-    var room = db.Rooms.Find(roomNumber);
+    var client = clientRepository.GetById(clientId);
+    var room = roomRepository.GetById(roomNumber);
 
     if (client == null || room == null)
     {
@@ -136,18 +106,13 @@ void AddReservation()
         CheckOutDate = checkOut
     };
 
-    db.Reservations.Add(res);
-    db.SaveChanges();
-
+    reservationRepo.Add(res);
     Console.WriteLine("Reservation added successfully!");
 }
 
 void GetAllReservations()
 {
-    var reservations = db.Reservations
-        .Include(r => r.Guest)
-        .Include(r => r.ReservedRoom)
-        .ToList();
+    var reservations = reservationRepo.GetAll();
 
     if (!reservations.Any())
     {
@@ -166,10 +131,7 @@ void GetReservationById()
     Console.Write("Reservation ID: ");
     int id = int.Parse(Console.ReadLine());
 
-    var res = db.Reservations
-        .Include(r => r.Guest)
-        .Include(r => r.ReservedRoom)
-        .FirstOrDefault(r => r.Id == id);
+    var res = reservationRepo.GetById(id);
 
     if (res == null)
     {
@@ -185,10 +147,7 @@ void UpdateReservation()
     Console.Write("Reservation ID: ");
     int id = int.Parse(Console.ReadLine());
 
-    var res = db.Reservations
-        .Include(r => r.Guest)
-        .Include(r => r.ReservedRoom)
-        .FirstOrDefault(r => r.Id == id);
+    var res = reservationRepo.GetById(id);
 
     if (res == null)
     {
@@ -214,7 +173,7 @@ void UpdateReservation()
     if (!string.IsNullOrWhiteSpace(checkOutStr))
         res.CheckOutDate = DateTime.Parse(checkOutStr);
 
-    db.SaveChanges();
+    reservationRepo.Update(id, res);
     Console.WriteLine("Reservation updated successfully!");
 }
 
@@ -223,17 +182,14 @@ void DeleteReservation()
     Console.Write("Reservation ID to delete: ");
     int id = int.Parse(Console.ReadLine());
 
-    var res = db.Reservations.Find(id);
-    if (res == null)
-    {
-        Console.WriteLine("Reservation not found.");
-        return;
-    }
+    bool success = reservationRepo.Delete(id);
 
-    db.Reservations.Remove(res);
-    db.SaveChanges();
-    Console.WriteLine("Reservation deleted successfully!");
+    if (success)
+        Console.WriteLine("Reservation deleted successfully!");
+    else
+        Console.WriteLine("Reservation not found.");
 }
+
 
 
 // -------------------- CRUD ROOMS --------------------
