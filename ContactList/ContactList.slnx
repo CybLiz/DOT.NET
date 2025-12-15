@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/Éléments de solution/">
+    <File Path=".gitignore" />
+  </Folder>
+  <Project Path="../Hotel/Hotel.csproj" />
+  <Project Path="ContactList.csproj" />
+</Solution>
